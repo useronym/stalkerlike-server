@@ -31,8 +31,7 @@
 ;;;===================================================================
 
 (defun start-link ()
-  (gen_server:start_link
-   #('local (server-name)) (MODULE) '() '()))
+  (gen_server:start_link (tuple 'local (server-name)) (MODULE) '() '()))
 
 ; Subscribe to receiving updates from this particular part of the world.
 (defun subscribe (chunkp)
