@@ -13,47 +13,7 @@
           (terminate 2)
           (code_change 3)))
 
-(defrecord state
-  pos
-  (rot 0)
-  (moves 100)
-  (bearing 'standing)
-  hp
-  wielding
-  (inv '()))
-
-(defrecord conf
-  name
-  icon
-  max-hp
-  actions
-  (more '()))
-
-(defrecord alive
-  speed-walk
-  speed-run
-  attack-min
-  attack-max)
-
-(defrecord weapon
-  ammo
-  mags
-  accuracy
-  fire-modes
-  upgrades
-  melee-damage)
-
-(defrecord ammo
-  damage)
-
-(defrecord weapon-upgrade
-  (ammo '())
-  (accuracy 0.0)
-  (fire-modes '())
-  (melee-damage 0))
-
-(defrecord mag
-  capacity)
+(include-lib "src/data.lfe")
 
 
 ;;;===================================================================
@@ -87,7 +47,7 @@
 
 (defun init
   (((p conf))
-   (let ((state (make-state pos p hp (conf-max-hp conf))))
+   (let ((state (make-entity-state pos p hp (entity-conf-max-hp conf))))
      (progn (entity-server:add state)
             (tuple 'ok (tuple state conf))))))
 
@@ -99,12 +59,12 @@
 
 (defun handle_cast
   (((tuple 'move dir) (tuple state conf))
-   (let ((new-pos (move-in-dir (state-pos state) (state-rot state) dir)))
+   (let ((new-pos (move-in-dir (entity-state-pos state) (entity-state-rot state) dir)))
      (progn (entity-server:update state)
-            (tuple 'noreply (tuple (set-state-pos state new-pos)
+            (tuple 'noreply (tuple (set-entity-state-pos state new-pos)
                                    conf)))))
   (((tuple 'rotate dir) (tuple state conf))
-   (tuple 'noreply (tuple (set-state-rot state (+ dir (state-rot state)))
+   (tuple 'noreply (tuple (set-entity-state-rot state (+ dir (entity-state-rot state)))
                           conf))))
 
 (defun handle_info (info state)
@@ -144,7 +104,7 @@
 ;;;===================================================================
 
 (defun entity-stalker ()
-  (make-conf
+  (make-entity-conf
    name "Stalker"
    icon #\@
    max-hp 100
@@ -156,7 +116,7 @@
                attack-max 10))))
 
 (defun entity-dog ()
-  (make-conf
+  (make-entity-conf
    name "Blind Dog"
    icon #\d
    max-hp 40
@@ -168,7 +128,7 @@
               attack-max 10))))
 
 (defun entity-knife ()
-  (make-conf
+  (make-entity-conf
    name "Knife"
    icon #\t
    max-hp 10000
@@ -177,7 +137,7 @@
               (make-weapon-upgrade melee-damage 40))))
 
 (defun entity-ak74 ()
-  (make-conf
+  (make-entity-conf
    name "AK-74"
    icon #\/
    max-hp 1000
@@ -190,7 +150,7 @@
                upgrades '("Knife" "1P29")))))
 
 (defun entity-AK74-mag ()
-  (make-conf
+  (make-entity-conf
    name "AK-74 Magazine"
    icon #\=
    max-hp 1000
@@ -198,7 +158,7 @@
    more (list (make-mag capacity 30))))
 
 (defun entity-5.45x39mm ()
-  (make-conf
+  (make-entity-conf
    name "5.45×39mm"
    icon #\a
    max-hp 20
@@ -206,7 +166,7 @@
    more (list (make-ammo damage 100))))
 
 (defun entity-1P29 ()
-  (make-conf
+  (make-entity-conf
    name "1P29"
    icon #\o
    max-hp 50

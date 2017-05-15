@@ -68,14 +68,16 @@
 ;;;===================================================================
 
 (defun accept (listen-socket)
-  (let* (((tuple 'ok socket) (gen_tcp:accept listen-socket))
-         ((tuple 'ok data) (gen_tcp:recv socket 0))
-         ((tuple user pass) (protocol-tcp:parse-login data)))
-    (if (can-login user pass)
-      (progn
-        (ssl:send socket (protocol-tcp:login-ok))
-        (controller-tcp:start socket (lookup-player user)))
-      (ssl:send socket (protocol-tcp:login-fail)))))
+  (let (((tuple 'ok socket) (gen_tcp:accept listen-socket)))
+    (progn
+      (gen_tcp:send socket (protocol-tcp:make-motd "Come in, don't stand there!"))
+      (let* (((tuple 'ok data) (gen_tcp:recv socket 0))
+             ((list user pass) (protocol-tcp:get-login data)))
+        (if (can-login user pass)
+          (progn
+            (gen_tcp:send socket (protocol-tcp:make-login-success))
+            (controller-tcp:start socket (lookup-player user)))
+          (gen_tcp:send socket (protocol-tcp:make-login-fail "Bad user & pass combination")))))))
 
 (defun spawn-acceptor (sock)
   (spawn_link (lambda () (accept sock))))
