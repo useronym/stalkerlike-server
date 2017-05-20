@@ -16,6 +16,8 @@
           (terminate 2)
           (code_change 3)))
 
+(include-lib "src/data.lfe")
+
 (defrecord chunk
   (entities '())
   (subs '()))
@@ -44,15 +46,15 @@
   (fen_server:call (server-name) (tuple 'get chunkp)))
 
 ; Add a new entity to the world.
-(defun add (entity)
-  (gen_server:cast (server-name) (tuple 'add entity)))
+(defun add (entity-pid)
+  (gen_server:cast (server-name) (tuple 'add entity-pid)))
 
-(defun remove (entity)
-  (gen_server:cast (server-name) (tuple 'remove entity)))
+(defun remove (entity-pid)
+  (gen_server:cast (server-name) (tuple 'remove entity-pid)))
 
 ; Notify the world that this entity has changed its state.
-(defun update (entity)
-  (gen_server:cast (server-name) (tuple 'update entity)))
+(defun update (entity-pid)
+  (gen_server:cast (server-name) (tuple 'update entity-pid)))
 
 
 ;;;===================================================================
@@ -67,15 +69,17 @@
    (tuple 'reply (chunk-entities (map-get world chunkp)))))
 
 (defun handle_cast
-  (((tuple 'add entity) world)
-   (progn (broadcast 'add entity world)
-          (tuple 'noreply (add-entity entity world))))
+  (((tuple 'add entity-pid) world)
+   (let ((entity-pos (entity:get-pos entity-pid)))
+     (progn (broadcast 'add entity-pid world)
+          (tuple 'noreply (add-entity entity-pid world)))))
   (((tuple 'remove entity) world)
    (progn (broadcast 'remove entity world)
           (tuple 'noreply (remove-entity entity world))))
   (((tuple 'update entity) world)
    (progn (remove entity)
-          (add entity)))
+          (add entity)
+          (tuple 'noreply world)))
   (((tuple 'subscribe pid chunkp) world)
    (tuple 'noreply (maps:update_with chunkp
                                      (lambda (chunk)
@@ -85,7 +89,7 @@
   (((tuple 'unsubscribe pid chunkp) world)
    (tuple 'noreply (maps:update_with chunkp
                                      (lambda (chunk)
-                                       (set-chunk-subs chunk (lists:remove pid (chunk-subs chunk))))
+                                       (set-chunk-subs chunk (lists:delete pid (chunk-subs chunk))))
                                      (make-chunk)
                                      world))))
 
@@ -106,9 +110,9 @@
 (defun load-world ()
   (map #(0 0) (make-chunk entities '() subs '())))
 
-(defun broadcast (info entity world)
-  (progn (lists:foreach (lambda (pid) (! pid (tuple info entity)))
-                        (chunk-subs (chunk-from-ent entity world)))))
+(defun broadcast (info entity-pid world)
+  (lists:foreach (lambda (pid) (! pid (tuple info entity-pid)))
+                 (chunk-subs (chunk-from-pos (entity:get-pos entity-pid) world))))
 
 (defun locate-pos
   (((tuple x y))
@@ -117,18 +121,14 @@
 (defun chunk-from-pos (pos world)
    (map-get world (locate-pos pos)))
 
-(defun chunk-from-ent (ent world)
-  (chunk-from-pos (entity:pos ent) world))
-
 (defun add-entity (ent world)
-  (maps:update_with (locate-pos (entity:pos ent))
+  (maps:update_with (locate-pos (entity:get-pos ent))
                     (lambda (chunk) (set-chunk-entities chunk
                                      (cons ent (chunk-entities chunk))))
                     world))
 
-; Not functional
 (defun remove-entity (ent world)
-  (maps:update_with (locate-pos (entity:pos ent))
+  (maps:update_with (locate-pos (entity:get-pos ent))
                     (lambda (chunk) (set-chunk-entities chunk
-                                     (lists:remove ent (chunk-entities chunk))))
+                                     (lists:delete ent (chunk-entities chunk))))
                     world))

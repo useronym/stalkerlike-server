@@ -86,4 +86,4 @@
   'true)
 
 (defun lookup-player (user)
-  (entity:new #(0 0) (entity:entity-stalker)))
+  (entity:start-link #(0 0) (entity:stalker)))

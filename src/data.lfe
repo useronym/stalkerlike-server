@@ -1,26 +1,23 @@
 (defrecord entity-state
+  (name "Unknown")
+  (icon "?")
   pos
   (rot 0)
-  (moves 100)
-  (bearing 'standing)
-  hp
-  wielding
-  (inv '()))
+  (visible 'true)
+  (hp 100)
+  (max-hp 100))
 
-(defrecord entity-conf
-  name
-  icon
-  max-hp
-  actions
-  (more '()))
+(defrecord entity-moves
+  (walk-speed 1.0)
+  (run-speed 2.0)
+  (crouch-speed 0.5)
+  (modes '(walk run)))
 
-(defrecord alive
-  speed-walk
-  speed-run
-  attack-min
-  attack-max)
+(defrecord entity-item
+  value
+  weight)
 
-(defrecord weapon
+(defrecord entity-weapon
   ammo
   mags
   accuracy
@@ -28,14 +25,14 @@
   upgrades
   melee-damage)
 
-(defrecord ammo
+(defrecord entity-ammo
   damage)
 
-(defrecord weapon-upgrade
+(defrecord entity-weapon-upgrade
   (ammo '())
   (accuracy 0.0)
   (fire-modes '())
   (melee-damage 0))
 
-(defrecord mag
+(defrecord entity-mag
   capacity)

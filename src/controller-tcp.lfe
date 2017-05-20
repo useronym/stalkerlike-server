@@ -11,15 +11,16 @@
           (code_change 3)))
 
 (defrecord state
-  (data (tuple)))
+  socket
+  entity)
 
 
 ;;;===================================================================
 ;;; API
 ;;;===================================================================
 
-(defun start (entity socket)
-  (gen_server:start (MODULE) '(entity socket) '()))
+(defun start (socket entity)
+  (gen_server:start (MODULE) '(socket entity) '()))
 
 
 ;;;===================================================================
@@ -27,21 +28,16 @@
 ;;;===================================================================
 
 (defun init
-  (((entity-pid socket))
+  (((sock entity-pid))
    (progn (renderer:start-link (entity:get-pos entity-pid) (self))
-          (tuple 'ok (tuple entity-pid socket)))))
+          (inet:setopts sock '(#(active true)))
+          (tuple 'ok (make-state socket sock entity entity-pid)))))
 
 (defun handle_call
-  (((tuple 'new-player name) from state)
-   (player:new #(0 0))
-   (tuple 'reply 'ok state))
   ((request from state)
    (tuple 'reply 'ok state)))
 
 (defun handle_cast
-  (((tuple 'test message) state)
-    (: lfe_io format '"Cast: ~p~n" (list message))
-    (tuple 'noreply state))
   ((message state)
     (tuple 'noreply state)))
 
@@ -50,9 +46,19 @@
    (tuple 'noreply state))
   (((tuple 'tcp_closed s) state)
    (tuple 'stop "TCP socket closed" state))
-  (((tuple 'terrain t) (tuple e socket))
-   (progn (ssl:send socket (jiffy:encode (tuple `(,(tuple 'terrain (lists:map #'list_to_binary/1 t))))))
-          (tuple 'noreply (tuple e socket)))))
+  (((tuple 'entity-add e) s)
+   (progn
+     (gen_tcp:send (state-socket s) (protocol-tcp:make-entity-add e))
+     (tuple 'noreply s)))
+  (((tuple 'entity-remove eid) s)
+   (progn
+     (gen_tcp:send (state-socket s) (protocol-tcp:make-entity-remove eid))
+     (tuple 'noreply s)))
+  (((tuple 'terrain t) s)
+   (progn
+     (gen_tcp:send (state-socket s) (protocol-tcp:make-terrain t))
+     (tuple 'noreply s))))
+
 
 (defun terminate (reason state)
   'ok)

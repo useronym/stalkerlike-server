@@ -25,29 +25,35 @@
 
 
 (defun tuple-entity (entity)
-  (tuple
-   (list
-    (tuple 'entityState (tuple-entity-state entity))
-    (tuple 'entityConf (tuple-entity-conf entity)))))
+  (let* ((state (lists:keyfind 'entity-state 1 entity))
+         (rest (lists:keydelete 'entity-state 1 entity)))
+    (tuple
+     (tuple 'entityState (tuple-component state))
+     (tuple 'comps (lists:map #'tuple-component/1 rest)))))
 
-(defun tuple-entity-state (e)
-  (tuple
-   (list
-    (tuple 'entityPos (tuple-pos (entity-state-pos e)))
-    (tuple 'entityRot (entity-state-rot e))
-    (tuple 'entityMoves (entity-state-moves e))
-    (tuple 'entityBearing (tuple-bearing (entity-state-bearing e)))
-    (tuple 'entityHP (entity-state-hp e))
-    (tuple 'entityWielding (tuple-wielding (entity-state-wielding e))))))
+(defun tuple-component
+  ((rec) (when (is-entity-state rec))
+   (tuple-state rec))
+  ((rec) (when (is-entity-moves rec))
+   (tuple-moves rec)))
 
-(defun tuple-entity-conf (e)
+(defun tuple-state (r)
   (tuple
    (list
-    (tuple 'entityName (entity-conf-name e))
-    (tuple 'entityIcon (entity-conf-icon e))
-    (tuple 'entityMaxHP (entity-conf-max-hp e))
-    (tuple 'entityActions (entity-conf-actions e)))
-   (tuple 'entityMore (tuple-more (entity-conf-more e)))))
+    (tuple 'stateName (entity-state-name r))
+    (tuple 'stateIcon (entity-state-icon r))
+    (tuple 'statePos (tuple-pos (entity-state-pos r)))
+    (tuple 'stateRot (entity-state-rot r))
+    (tuple 'stateHP (entity-state-hp r))
+    (tuple 'stateMaxHP (entity-state-max-hp r)))))
+
+(defun tuple-moves (r)
+  (tuple
+   (list
+    (tuple 'movesWalkSpeed (entity-moves-walk-speed r))
+    (tuple 'movesRunSpeed (entity-moves-run-speed r))
+    (tuple 'movesCrouchSpeed (entity-moves-crouch-speed r))
+    (tuple 'movesModes (entity-moves-modes r)))))
 
 (defun tuple-pos
   (((tuple x y))
@@ -55,15 +61,6 @@
     (list
      (tuple 'posX x)
      (tuple 'posY y)))))
-
-(defun tuple-bearing (b)
-  'Standing)
-
-(defun tuple-wielding (w)
-  'null)
-
-(defun tuple-more (items)
-  [])
 
 
 (defun make (tag)
